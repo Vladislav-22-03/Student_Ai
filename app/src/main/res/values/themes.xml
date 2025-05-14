@@ -1,9 +1,14 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
     <style name="Base.Theme.Student_Ai" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your light theme here. -->
-        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+        <!-- Цвет фона статус-бара -->
+        <item name="android:statusBarColor">@android:color/transparent</item>
+
+        <!-- Настройка иконок в статус-баре (светлые или тёмные) -->
+        <item name="android:windowLightStatusBar">true</item>
+        
     </style>
+
 
     <style name="Theme.Student_Ai" parent="Base.Theme.Student_Ai" />
 </resources>

@@ -8,15 +8,18 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
-import android.os.Environment
 import android.speech.RecognizerIntent
+import android.text.SpannableString
+import android.text.SpannableStringBuilder
+import android.text.Spanned
+import android.util.Log
 import android.view.View
 import android.widget.*
-import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
-import java.io.FileOutputStream
+import com.example.student_ai.network.RetrofitInstance
+import retrofit2.*
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -24,8 +27,11 @@ class Work : AppCompatActivity() {
     private lateinit var etInput: EditText
     private lateinit var btnMic: ImageButton
     private lateinit var btnSaveNote: Button
+    private lateinit var btnProcessText: Button
+    private lateinit var tvSummary: TextView
+
     private val speechRequestCode = 100
-    private val fullscreenRequestCode = 200 // Новый код запроса для FullscreenTextActivity
+    private val fullscreenRequestCode = 200
 
     private var originalText: String = ""
 
@@ -44,18 +50,21 @@ class Work : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
         setContentView(R.layout.work_page)
 
         etInput = findViewById(R.id.etInput)
         btnMic = findViewById(R.id.btnMic)
         btnSaveNote = findViewById(R.id.btnSaveNote)
+        btnProcessText = findViewById(R.id.btnProcessText)
+        tvSummary = findViewById(R.id.tvSummary)
 
-        // Загружаем текст, если открываем существующую заметку
         val incomingText = intent.getStringExtra("EXTRA_NOTE_CONTENT")
         if (!incomingText.isNullOrEmpty()) {
             etInput.setText(incomingText)
             originalText = incomingText
+            if (tvSummary.text.isNotEmpty()) {
+                tvSummary.visibility = View.VISIBLE
+            }
         } else {
             originalText = ""
         }
@@ -63,12 +72,43 @@ class Work : AppCompatActivity() {
         btnMic.setOnClickListener { checkAndRequestMicrophonePermission() }
         btnSaveNote.setOnClickListener { promptUserToChooseFileLocation() }
 
+        btnProcessText.setOnClickListener {
+            val inputText = etInput.text.toString()
+            if (inputText.isNotEmpty()) {
+                processTextWithTextGears(inputText)
+            } else {
+                Toast.makeText(this, "Сначала введите текст", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        tvSummary.setOnClickListener {
+            val summaryText = tvSummary.text.toString()
+            if (summaryText.isNotEmpty()) {
+                openFullscreenSummary(summaryText)
+            } else {
+                Toast.makeText(this, "Сначала получите сокращение", Toast.LENGTH_SHORT).show()
+            }
+        }
+
         etInput.setOnClickListener(object : DoubleClickListener() {
             override fun onDoubleClick(v: View) {
                 openFullscreenText()
             }
         })
     }
+
+    private fun openFullscreenSummary(summaryText: String) {
+        if (summaryText.isEmpty()) {
+            Toast.makeText(this, "Сначала получите сокращение", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val intent = Intent(this, FullscreenTextActivity::class.java).apply {
+            putExtra("TEXT_CONTENT", summaryText)
+        }
+        startActivity(intent)
+    }
+
 
     private fun checkAndRequestMicrophonePermission() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
@@ -108,9 +148,9 @@ class Work : AppCompatActivity() {
         }
 
         val intent = Intent(this, FullscreenTextActivity::class.java).apply {
-            putExtra("TEXT_CONTENT", etInput.text.toString()) // Передаем текст для редактирования
+            putExtra("TEXT_CONTENT", etInput.text.toString())
         }
-        startActivityForResult(intent, fullscreenRequestCode) // Ожидаем результат
+        startActivityForResult(intent, fullscreenRequestCode)
     }
 
     private fun promptUserToChooseFileLocation() {
@@ -124,34 +164,44 @@ class Work : AppCompatActivity() {
     }
 
     private fun saveTextToUri(uri: Uri) {
-        val textToSave = etInput.text.toString()
+        // Составляем текст для сохранения
+        val textToSave = buildString {
+            append(etInput.text.toString()) // Основной текст из EditText
+            if (tvSummary.visibility == View.VISIBLE && tvSummary.text.isNotEmpty()) {
+                append("\n\n--- Сокращение ---\n") // Разделитель между основным текстом и сокращением
+                append(tvSummary.text.toString()) // Сокращённый текст
+            }
+        }
+
+        // Если текст пустой, показываем ошибку
         if (textToSave.isEmpty()) {
             Toast.makeText(this, "Введите текст для сохранения", Toast.LENGTH_SHORT).show()
             return
         }
 
         try {
+            // Открываем поток для записи в файл и записываем текст
             contentResolver.openOutputStream(uri)?.use { outputStream ->
                 outputStream.write(textToSave.toByteArray())
             }
             Toast.makeText(this, "Файл сохранен", Toast.LENGTH_LONG).show()
-            originalText = textToSave // Сохранили — обновляем оригинал
+            originalText = etInput.text.toString() // Обновляем оригинальный текст
         } catch (e: Exception) {
             Toast.makeText(this, "Ошибка при сохранении: ${e.message}", Toast.LENGTH_SHORT).show()
             e.printStackTrace()
         }
     }
 
+
+
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
 
-        // Обрабатываем результат от FullscreenTextActivity
         if (requestCode == fullscreenRequestCode && resultCode == RESULT_OK) {
             val editedText = data?.getStringExtra("EDITED_TEXT") ?: ""
-            etInput.setText(editedText) // Обновляем текст в поле ввода
+            etInput.setText(editedText)
         }
 
-        // Обрабатываем голосовой ввод
         if (requestCode == speechRequestCode && resultCode == RESULT_OK && data != null) {
             val results = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
             results?.let {
@@ -174,6 +224,85 @@ class Work : AppCompatActivity() {
         } else {
             super.onBackPressed()
         }
+    }
+
+    private fun processTextWithTextGears(text: String) {
+        val apiKey = "ux0V4k4NuYZDXsPv"
+        val api = RetrofitInstance.api
+        Log.d("API_REQUEST", "Отправка запроса на обработку текста: $text")
+
+        api.summarizeText(text, apiKey, "ru-RU").enqueue(object : Callback<Map<String, Any>> {
+            override fun onResponse(call: Call<Map<String, Any>>, response: Response<Map<String, Any>>) {
+                if (response.isSuccessful) {
+                    val responseBody = response.body()
+                    Log.d("API_RAW_RESPONSE", responseBody.toString())
+
+                    val status = responseBody?.get("status") as? Boolean
+                    if (status == true) {
+                        val data = responseBody["response"] as? Map<*, *>
+                        val summary = data?.get("summary") as? List<*>
+                        val keywords = data?.get("keywords") as? List<*>
+
+                        if (summary != null) {
+                            var summaryText = summary.joinToString("\n") { it.toString() }
+
+                            // Отображаем сокращённый текст в tvSummary
+                            tvSummary.text = summaryText
+                            tvSummary.visibility = View.VISIBLE // Делаем tvSummary видимым
+
+                            // Если есть ключевые слова, обрабатываем текст и выделяем их капсом
+                            if (keywords != null) {
+                                val processedText = processTextWithCaps(text, keywords)
+
+                                // Обновляем текст в EditText, делая ключевые слова капсом
+                                etInput.setText(processedText)
+                                originalText = processedText
+                            } else {
+                                etInput.setText("Не удалось получить ключевые слова.")
+                            }
+                        } else {
+                            etInput.setText("Обработка не удалась.")
+                        }
+                    } else {
+                        etInput.setText("Ошибка от API: ${response.code()}")
+                        Log.e("API_ERROR", "Ошибка ответа от API: ${response.code()} - ${response.message()}")
+                    }
+                } else {
+                    etInput.setText("Ошибка от API: ${response.code()}")
+                    Log.e("API_ERROR", "Ошибка ответа от API: ${response.code()} - ${response.message()}")
+                }
+            }
+
+            override fun onFailure(call: Call<Map<String, Any>>, t: Throwable) {
+                etInput.setText("Ошибка обработки текста: ${t.localizedMessage}")
+                Log.e("API_ERROR", "Ошибка запроса: ${t.localizedMessage}")
+            }
+        })
+    }
+
+    private fun processTextWithCaps(originalText: String, keywords: List<*>) : String {
+        var processedText = originalText
+
+        keywords.forEach { keyword ->
+            val keywordStr = keyword.toString()
+
+            var startIndex = 0
+            // Ищем все вхождения ключевого слова в тексте
+            while (startIndex < processedText.length) {
+                startIndex = processedText.indexOf(keywordStr, startIndex, ignoreCase = true)
+                if (startIndex == -1) break
+
+                // Заменяем на капс
+                val keywordUppercase = keywordStr.uppercase()
+
+                // Заменяем слово на капс-версию
+                processedText = processedText.replaceRange(startIndex, startIndex + keywordStr.length, keywordUppercase)
+
+                startIndex += keywordStr.length
+            }
+        }
+
+        return processedText
     }
 }
 

@@ -3,36 +3,39 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
+    android:layout_height="match_parent"
+    android:background="#FFFFFF"
     android:padding="16dp">
+
 
     <TextView
         android:id="@+id/tvGreeting"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="52dp"
+        android:layout_marginTop="24dp"
         android:fontFamily="@font/montserrat_bold"
         android:text="MindScribe"
         android:textColor="@color/btn_color"
         android:textSize="35sp"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintHorizontal_bias="0.497"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
-
 
     <LinearLayout
         android:id="@+id/linearLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="148dp"
+        android:layout_marginTop="36dp"
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:padding="8dp"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/tvGreeting">
 
+        <!-- Оставил только кнопку микрофона -->
         <ScrollView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -55,7 +58,6 @@
                 android:scrollbars="vertical" />
         </ScrollView>
 
-        <!-- Оставил только кнопку микрофона -->
         <ImageButton
             android:id="@+id/btnMic"
             android:layout_width="48dp"
@@ -67,27 +69,54 @@
             tools:ignore="SpeakableTextPresentCheck" />
     </LinearLayout>
 
+    <EditText
+        android:id="@+id/tvSummary"
+        android:layout_width="374dp"
+        android:layout_height="109dp"
+        android:layout_marginTop="32dp"
+        android:background="@drawable/edittxt_rounded"
+        android:backgroundTint="@color/edittxt_fon"
+        android:gravity="top|start"
+        android:inputType="textMultiLine|textCapSentences"
+        android:maxLines="10"
+        android:minHeight="120dp"
+        android:padding="12dp"
+        android:scrollbars="vertical"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/linearLayout"
+        tools:ignore="MissingConstraints" />
+
     <Button
         android:id="@+id/btnSaveNote"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="108dp"
+        android:layout_width="300dp"
+        android:layout_height="60dp"
+        android:layout_marginTop="212dp"
+        android:backgroundTint="@color/btn_color"
+        android:fontFamily="@font/montserrat_medium"
         android:text="Сохранить заметку"
+        android:textSize="25sp"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.493"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/linearLayout" />
 
     <Button
         android:id="@+id/btnProcessText"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="300dp"
+        android:layout_height="60dp"
+        android:textSize="25sp"
         android:layout_below="@id/etInput"
         android:layout_centerHorizontal="true"
-        android:layout_marginTop="28dp"
+        android:layout_marginTop="16dp"
+        android:backgroundTint="@color/btn_color"
+        android:fontFamily="@font/montserrat_medium"
         android:text="Обработать"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/btnSaveNote" />
+        app:layout_constraintTop_toBottomOf="@+id/btnSaveNote"
+        tools:ignore="NotSibling" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
